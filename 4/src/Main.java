@@ -162,6 +162,9 @@ class FileManager {
 
 // Головна програма
 public class Main {
+    private static final Set<Integer> assignedFirefighters = new HashSet<>();
+    private static final Set<Integer> assignedPolicemen = new HashSet<>();
+
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         Road road = new Road();
@@ -276,7 +279,15 @@ public class Main {
                 List<Human> availablePassengers = new ArrayList<>();
                 for (Human passenger : allPassengers) {
                     if (selectedTransport.canBoard(passenger) && !selectedTransport.isPassengerInTransport(passenger)) {
-                        availablePassengers.add(passenger);
+                        if (passenger instanceof Firefighter && selectedTransport instanceof FireEngine &&
+                                !assignedFirefighters.contains(passenger.getId())) {
+                            availablePassengers.add(passenger);
+                        } else if (passenger instanceof Policeman && selectedTransport instanceof PoliceCar &&
+                                !assignedPolicemen.contains(passenger.getId())) {
+                            availablePassengers.add(passenger);
+                        } else if (!(passenger instanceof Firefighter || passenger instanceof Policeman)) {
+                            availablePassengers.add(passenger);
+                        }
                     }
                 }
 
@@ -311,6 +322,11 @@ public class Main {
 
                     try {
                         selectedTransport.boardPassenger(selectedPassenger);
+                        if (selectedPassenger instanceof Firefighter && selectedTransport instanceof FireEngine) {
+                            assignedFirefighters.add(selectedPassenger.getId());
+                        } else if (selectedPassenger instanceof Policeman && selectedTransport instanceof PoliceCar) {
+                            assignedPolicemen.add(selectedPassenger.getId());
+                        }
                         System.out.println("Пасажир доданий: " + selectedPassenger);
                         break; // повернення до меню після успішної посадки
                     } catch (Exception e) {
@@ -371,17 +387,18 @@ public class Main {
                             .orElse(null);
 
                     if (selectedPassenger == null) {
-                        System.out.println("Пасажир не сидить у цьому транспортному засобі.");
+                        System.out.println("Невірний вибір пасажира! Спробуйте ще раз.");
                         continue;
                     }
 
-                    try {
-                        selectedTransport.disembarkPassenger(selectedPassenger);
-                        System.out.println("Пасажир висаджений: " + selectedPassenger);
-                        break; // повернення до меню після успішної висадки
-                    } catch (Exception e) {
-                        System.out.println("Помилка: " + e.getMessage());
+                    selectedTransport.disembarkPassenger(selectedPassenger);
+                    if (selectedPassenger instanceof Firefighter && selectedTransport instanceof FireEngine) {
+                        assignedFirefighters.remove(selectedPassenger.getId());
+                    } else if (selectedPassenger instanceof Policeman && selectedTransport instanceof PoliceCar) {
+                        assignedPolicemen.remove(selectedPassenger.getId());
                     }
+                    System.out.println("Пасажир висаджений: " + selectedPassenger);
+                    break; // повернення до меню після успішної висадки
                 } else {
                     System.out.println("Невірний вибір! Спробуйте ще раз.");
                 }
@@ -398,10 +415,10 @@ public class Main {
         }
     }
 
-    private static boolean isValidChoice(String input, int min, int max) {
+    private static boolean isValidChoice(String choice, int min, int max) {
         try {
-            int choice = Integer.parseInt(input);
-            return choice >= min && choice <= max;
+            int num = Integer.parseInt(choice);
+            return num >= min && num <= max;
         } catch (NumberFormatException e) {
             return false;
         }
